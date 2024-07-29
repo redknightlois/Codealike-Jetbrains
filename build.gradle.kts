@@ -7,7 +7,7 @@ group = "com.codealike.client.intellij"
 
 
 
-version = "1.7.3.0"
+version = "1.7.3.1"
 
 
 
@@ -40,7 +40,7 @@ tasks {
 
     patchPluginXml {
         sinceBuild.set("222")
-        untilBuild.set("233.*")
+        untilBuild.set("241.*")
     }
 
     signPlugin {
