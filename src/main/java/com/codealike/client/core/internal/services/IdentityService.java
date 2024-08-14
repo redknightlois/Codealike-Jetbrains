@@ -55,7 +55,7 @@ public class IdentityService extends BaseService {
     }
 
     public boolean login(String identity, String token, boolean storeCredentials, boolean rememberMe) {
-        Notification note = new Notification("CodealikeApplicationComponent.Notifications",
+        Notification note = new Notification("CodealikeLifecycleListener.Notifications",
                 "Codealike",
                 "Codealike  is connecting...",
                 NotificationType.INFORMATION);
@@ -190,7 +190,7 @@ public class IdentityService extends BaseService {
     }
 
     public void logOff() {
-        Notification note = new Notification("CodealikeApplicationComponent.Notifications",
+        Notification note = new Notification("CodealikeLifecycleListener.Notifications",
                 "Codealike",
                 "Codealike  is disconnecting...",
                 NotificationType.INFORMATION);

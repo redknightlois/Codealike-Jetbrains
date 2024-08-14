@@ -101,7 +101,7 @@ public class TrackingService extends BaseService {
 
         Notification resultNote = null;
 
-        Notification note = new Notification("CodealikeApplicationComponent.Notifications",
+        Notification note = new Notification("CodealikeLifecycleListener.Notifications",
                 "Codealike",
                 "Codealike is sending activities...",
                 NotificationType.INFORMATION);
@@ -112,7 +112,7 @@ public class TrackingService extends BaseService {
         FlushResult result = tracker.flush(context.getIdentityService().getIdentity(), context.getIdentityService().getToken());
         switch (result) {
             case Succeded:
-                resultNote = new Notification("CodealikeApplicationComponent.Notifications",
+                resultNote = new Notification("CodealikeLifecycleListener.Notifications",
                         "Codealike",
                         "Codealike sent activities",
                         NotificationType.INFORMATION);
@@ -121,7 +121,7 @@ public class TrackingService extends BaseService {
 
                 break;
             case Skip:
-                resultNote = new Notification("CodealikeApplicationComponent.Notifications",
+                resultNote = new Notification("CodealikeLifecycleListener.Notifications",
                         "Codealike",
                         "No data to be sent",
                         NotificationType.INFORMATION);
@@ -132,7 +132,7 @@ public class TrackingService extends BaseService {
 
                 break;
             case Offline:
-                resultNote = new Notification("CodealikeApplicationComponent.Notifications",
+                resultNote = new Notification("CodealikeLifecycleListener.Notifications",
                         "Codealike",
                         "Codealike is working in offline mode",
                         NotificationType.INFORMATION);
@@ -141,7 +141,7 @@ public class TrackingService extends BaseService {
 
                 break;
             case Report:
-                resultNote = new Notification("CodealikeApplicationComponent.Notifications",
+                resultNote = new Notification("CodealikeLifecycleListener.Notifications",
                         "Codealike",
                         "Codealike is storing corrupted entries for further inspection",
                         NotificationType.INFORMATION);
@@ -171,7 +171,7 @@ public class TrackingService extends BaseService {
         if (context.isAuthenticated()) {
             startTracking();
 
-            Notification note = new Notification("CodealikeApplicationComponent.Notifications",
+            Notification note = new Notification("CodealikeLifecycleListener.Notifications",
                     "Codealike",
                     "Codealike is connected and tracking your projects.",
                     NotificationType.INFORMATION);
@@ -186,7 +186,7 @@ public class TrackingService extends BaseService {
             // flush last information before leaving
             flushTrackingInformation();
 
-            Notification note = new Notification("CodealikeApplicationComponent.Notifications",
+            Notification note = new Notification("CodealikeLifecycleListener.Notifications",
                     "Codealike",
                     "Codealike  is not tracking your projects",
                     NotificationType.INFORMATION);

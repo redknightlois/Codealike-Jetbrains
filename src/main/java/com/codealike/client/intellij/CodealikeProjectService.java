@@ -51,7 +51,7 @@ public class CodealikeProjectService implements Disposable {
                 }
                 case AskEveryTime:
                 case Never:
-                    Notification note = new Notification("CodealikeApplicationComponent.Notifications",
+                    Notification note = new Notification("CodealikeLifecycleListener.Notifications",
                             "Codealike",
                             "Codealike  is not tracking your projects",
                             NotificationType.INFORMATION);
