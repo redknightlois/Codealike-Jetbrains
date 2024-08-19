@@ -245,8 +245,7 @@ public class PluginContext {
             LogManager.INSTANCE.logInfo("Communication problems running in offline mode.");
             return solutionId;
         }
-        int numberOfRetries = 0;
-        while (response.conflict() || (response.error() && numberOfRetries < ApiClient.MAX_RETRIES)) {
+        while (response.conflict() || response.error()) {
             solutionId = UUID.randomUUID();
             response = client.getSolutionContext(solutionId);
         }

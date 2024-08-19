@@ -50,7 +50,15 @@ public class CodealikeLifecycleListener implements AppLifecycleListener {
         } catch (Exception exception) {
             try {
                 ApiClient client = ApiClient.tryCreateNew();
-                client.logHealth(new HealthInfo(exception, "Plugin could not start.", "intellij", HealthInfo.HealthInfoType.Error, pluginContext.getIdentityService().getIdentity()));
+                client.logHealth(
+                        new HealthInfo(
+                                exception,
+                                "Plugin could not start.",
+                                "intellij",
+                                HealthInfo.HealthInfoType.Error,
+                                pluginContext.getIdentityService().getIdentity()
+                        )
+                );
             } catch (KeyManagementException keyManagementException) {
                 LOG.logError(exception, "Couldn't send HealthInfo.");
             }
@@ -68,8 +76,8 @@ public class CodealikeLifecycleListener implements AppLifecycleListener {
             } else {
                 LOG.logWarn("Properties is null");
             }
-        } catch (IOException e) {
-            LOG.logError("Couldn't get properties");
+        } catch (IOException exception) {
+            LOG.logError("Couldn't get properties: " + exception.getMessage());
         }
 
         return properties;
