@@ -10,8 +10,8 @@ import com.codealike.client.core.internal.dto.ProjectContextInfo;
 import com.codealike.client.core.internal.model.ActivityEvent;
 import com.codealike.client.core.internal.model.ActivityState;
 import com.codealike.client.core.internal.startup.PluginContext;
-import org.joda.time.DateTime;
 
+import java.time.OffsetDateTime;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
@@ -27,8 +27,8 @@ public class ActivityInfoProcessor {
     private final List<ActivityState> processedStates;
     // list of processed events
     private final List<ActivityEvent> processedEvents;
-    private DateTime batchStart;
-    private DateTime batchEnd;
+    private final OffsetDateTime batchStart;
+    private final OffsetDateTime batchEnd;
 
     /**
      * Activity information processor constructor
@@ -36,7 +36,7 @@ public class ActivityInfoProcessor {
      * @param states the states to process
      * @param events the events to process
      */
-    public ActivityInfoProcessor(List<ActivityState> states, List<ActivityEvent> events, DateTime batchStart, DateTime batchEnd) {
+    public ActivityInfoProcessor(List<ActivityState> states, List<ActivityEvent> events, OffsetDateTime batchStart, OffsetDateTime batchEnd) {
         this.processedStates = states;
         this.processedEvents = events;
         this.batchStart = batchStart;

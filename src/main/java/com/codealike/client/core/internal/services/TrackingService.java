@@ -15,8 +15,8 @@ import com.intellij.notification.NotificationType;
 import com.intellij.notification.Notifications;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.project.Project;
-import org.joda.time.DateTime;
 
+import java.time.OffsetDateTime;
 import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -31,9 +31,10 @@ import java.util.concurrent.TimeUnit;
 public class TrackingService extends BaseService {
     private static TrackingService _instance;
 
-    private TrackedProjectManager trackedProjectManager;
+    private final TrackedProjectManager trackedProjectManager;
+    private final StateTracker tracker;
+
     private ScheduledExecutorService flushExecutor = null;
-    private StateTracker tracker;
     private boolean isTracking;
     private PluginContext context;
 
@@ -97,7 +98,7 @@ public class TrackingService extends BaseService {
     }
 
     private void flushTrackingInformation() {
-        Boolean verboseMode = Boolean.parseBoolean(context.getProperty("activity-verbose-notifications"));
+        boolean verboseMode = Boolean.parseBoolean(context.getProperty("activity-verbose-notifications"));
 
         Notification resultNote = null;
 
@@ -194,7 +195,7 @@ public class TrackingService extends BaseService {
         }
     }
 
-    public synchronized void startTracking(Project project, DateTime workspaceInitDate) {
+    public synchronized void startTracking(Project project, OffsetDateTime workspaceInitDate) {
         if (!project.isOpen()) {
             return;
         }

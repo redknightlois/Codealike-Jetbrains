@@ -4,9 +4,9 @@
 package com.codealike.client.core.internal.model;
 
 import com.codealike.client.core.internal.dto.ActivityType;
-import org.joda.time.DateTime;
-import org.joda.time.Period;
 
+import java.time.Duration;
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
 /**
@@ -19,14 +19,14 @@ public class ActivityEvent implements IEndable {
 
     protected ActivityType type;
     protected CodeContext context;
-    protected DateTime creationTime;
-    protected Period duration;
+    protected OffsetDateTime creationTime;
+    protected Duration duration;
     protected UUID projectId;
 
 
     public ActivityEvent(UUID projectId, ActivityType type, CodeContext context) {
-        creationTime = DateTime.now();
-        duration = Period.ZERO;
+        creationTime = OffsetDateTime.now();
+        duration = Duration.ZERO;
         this.type = type;
         this.context = context;
         this.projectId = projectId;
@@ -44,19 +44,19 @@ public class ActivityEvent implements IEndable {
         this.context = context;
     }
 
-    public DateTime getCreationTime() {
+    public OffsetDateTime getCreationTime() {
         return creationTime;
     }
 
-    public void setCreationTime(DateTime creationTime) {
+    public void setCreationTime(OffsetDateTime creationTime) {
         this.creationTime = creationTime;
     }
 
-    public Period getDuration() {
+    public Duration getDuration() {
         return duration;
     }
 
-    public void setDuration(Period duration) {
+    public void setDuration(Duration duration) {
         this.duration = duration;
     }
 
@@ -81,8 +81,8 @@ public class ActivityEvent implements IEndable {
         return new ActivityEvent(this.projectId, this.type, this.getContext());
     }
 
-    public void closeDuration(DateTime closeTo) {
-        this.duration = new Period(this.getCreationTime(), closeTo);
+    public void closeDuration(OffsetDateTime closeTo) {
+        this.duration = Duration.between(this.getCreationTime(), closeTo);
     }
 
     public boolean isEquivalent(ActivityEvent event) {
@@ -95,8 +95,7 @@ public class ActivityEvent implements IEndable {
     public boolean equals(Object event) {
         if (event == null) return false;
         if (event == this) return true;
-        if (!(event instanceof ActivityEvent)) return false;
-        ActivityEvent eventClass = (ActivityEvent) event;
+        if (!(event instanceof ActivityEvent eventClass)) return false;
 
         return (this.getProjectId() == eventClass.getProjectId()
                 && this.getType() == eventClass.getType()

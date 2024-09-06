@@ -5,8 +5,8 @@ package com.codealike.client.core.internal.model;
 
 import com.codealike.client.core.internal.dto.ActivityType;
 import com.codealike.client.core.internal.startup.PluginContext;
-import org.joda.time.DateTime;
 
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
 /**
@@ -17,25 +17,21 @@ import java.util.UUID;
  */
 public class NullActivityState extends ActivityState {
 
-    public NullActivityState(ActivityType type, DateTime creationTime, UUID projectId) {
+    public NullActivityState(ActivityType type, OffsetDateTime creationTime, UUID projectId) {
         super(projectId, type, creationTime);
     }
 
     protected static NullActivityState createNew() {
-        NullActivityState state = new NullActivityState(ActivityType.Idle, DateTime.now(), PluginContext.UNASSIGNED_PROJECT);
-
-        return state;
+        return new NullActivityState(ActivityType.Idle, OffsetDateTime.now(), PluginContext.UNASSIGNED_PROJECT);
     }
 
     protected static NullActivityState createNew(UUID projectId) {
-        NullActivityState state = new NullActivityState(ActivityType.Idle, DateTime.now(), projectId);
-
-        return state;
+        return new NullActivityState(ActivityType.Idle, OffsetDateTime.now(), projectId);
     }
 
     @Override
     public NullActivityState recreate() {
-        return new NullActivityState(this.type, DateTime.now(), this.projectId);
+        return new NullActivityState(this.type, OffsetDateTime.now(), this.projectId);
     }
 
 }

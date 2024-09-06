@@ -4,8 +4,8 @@
 package com.codealike.client.core.internal.model;
 
 import com.codealike.client.core.internal.dto.ActivityType;
-import org.joda.time.DateTime;
 
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
 /**
@@ -16,30 +16,30 @@ import java.util.UUID;
  */
 public class IdleActivityState extends ActivityState {
 
-    private DateTime lastActivity;
+    private OffsetDateTime lastActivity;
 
-    public IdleActivityState(UUID projectId, ActivityType type, DateTime creationTime) {
+    public IdleActivityState(UUID projectId, ActivityType type, OffsetDateTime creationTime) {
         super(projectId, type, creationTime);
     }
 
     protected static IdleActivityState createNew(UUID projectId) {
-        IdleActivityState state = new IdleActivityState(projectId, ActivityType.Idle, DateTime.now());
+        IdleActivityState state = new IdleActivityState(projectId, ActivityType.Idle, OffsetDateTime.now());
         state.lastActivity = state.getCreationTime();
 
         return state;
     }
 
-    public DateTime getLastActivity() {
+    public OffsetDateTime getLastActivity() {
         return lastActivity;
     }
 
-    public void setLastActivity(DateTime lastActivity) {
+    public void setLastActivity(OffsetDateTime lastActivity) {
         this.lastActivity = lastActivity;
     }
 
     @Override
     public IdleActivityState recreate() {
-        return new IdleActivityState(this.projectId, this.type, DateTime.now());
+        return new IdleActivityState(this.projectId, this.type, OffsetDateTime.now());
     }
 
 }

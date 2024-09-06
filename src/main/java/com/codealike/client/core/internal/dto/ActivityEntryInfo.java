@@ -1,21 +1,17 @@
 package com.codealike.client.core.internal.dto;
 
-import org.joda.time.DateTime;
-import org.joda.time.Period;
-
+import java.time.Duration;
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
 public class ActivityEntryInfo {
 
     private UUID parentId;
-    private DateTime start;
-    private DateTime end;
+    private OffsetDateTime start;
+    private OffsetDateTime end;
     private ActivityType type;
-    private Period duration;
+    private Duration duration;
     private CodeContextInfo context;
-
-    public ActivityEntryInfo() {
-    }
 
     public ActivityEntryInfo(UUID parentId) {
         this.parentId = parentId;
@@ -45,27 +41,27 @@ public class ActivityEntryInfo {
         this.type = type;
     }
 
-    public DateTime getStart() {
+    public OffsetDateTime getStart() {
         return start;
     }
 
-    public void setStart(DateTime start) {
+    public void setStart(OffsetDateTime start) {
         this.start = start;
     }
 
-    public DateTime getEnd() {
+    public OffsetDateTime getEnd() {
         return end;
     }
 
-    public void setEnd(DateTime end) {
+    public void setEnd(OffsetDateTime end) {
         this.end = end;
     }
 
-    public Period getDuration() {
+    public Duration getDuration() {
         return duration;
     }
 
-    public void setDuration(Period duration) {
+    public void setDuration(Duration duration) {
         this.duration = duration;
     }
 
