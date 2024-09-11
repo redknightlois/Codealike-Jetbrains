@@ -7,8 +7,6 @@ group = "com.codealike.client.intellij"
 
 version = "1.7.3.0"
 
-val libs: Configuration by configurations.creating
-
 repositories {
     mavenCentral()
     intellijPlatform{
@@ -44,9 +42,6 @@ dependencies {
         bundledPlugin("com.intellij.java")
         instrumentationTools()
     }
-
-    libs("joda-time:joda-time:2.12.2")
-    configurations.implementation.get().extendsFrom(libs)
 }
 
 tasks {
@@ -58,6 +53,5 @@ tasks {
 
     jar {
         duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-        from(libs.map { if (it.isDirectory) it else zipTree(it) })
     }
 }

@@ -16,8 +16,6 @@ import com.codealike.client.core.internal.startup.PluginContext;
 import com.codealike.client.core.internal.utils.LogManager;
 import com.codealike.client.core.internal.utils.TrackingConsole;
 import com.fasterxml.jackson.databind.ObjectWriter;
-import org.joda.time.DateTime;
-import org.joda.time.Period;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -26,6 +24,8 @@ import java.io.IOException;
 import java.net.UnknownHostException;
 import java.nio.charset.Charset;
 import java.security.KeyManagementException;
+import java.time.Duration;
+import java.time.OffsetDateTime;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -36,19 +36,19 @@ public class ActivitiesRecorder {
     private ActivityEvent lastEvent;
     private ActivityState lastState;
 
-    private PluginContext context;
+    private final PluginContext context;
 
-    private DateTime currentBatchStart;
-    private DateTime lastEventTime;
+    private OffsetDateTime currentBatchStart;
+    private OffsetDateTime lastEventTime;
 
     public ActivitiesRecorder(PluginContext context) {
         this.states = new LinkedList<>();
         this.events = new LinkedList<>();
         this.context = context;
-        this.currentBatchStart = DateTime.now();
+        this.currentBatchStart = OffsetDateTime.now();
     }
 
-    public DateTime getLastEventTime() {
+    public OffsetDateTime getLastEventTime() {
         return lastEventTime;
     }
 
@@ -97,25 +97,25 @@ public class ActivitiesRecorder {
         // get idle max interval in seconds
         int idleMinIntervalInSeconds = PluginContext.getInstance().getConfiguration().getIdleCheckInterval() / 1000;
 
-        DateTime currentTime = DateTime.now();
-        DateTime entityBaseEnd = endableEntity.getCreationTime().plus(endableEntity.getDuration());
-        int elapsedPeriodBetweenLastEventAndNow = new Period(entityBaseEnd, currentTime).toStandardSeconds().getSeconds();
+        OffsetDateTime currentTime = OffsetDateTime.now();
+        OffsetDateTime entityBaseEnd = endableEntity.getCreationTime().plus(endableEntity.getDuration());
+        long elapsedPeriodBetweenLastEventAndNow = Duration.between(entityBaseEnd, currentTime).getSeconds();
 
         // if time elapsed between last event activity and now is less than
         // the time it takes to infer user was idle, we track the time as it is
         // else, something happened and idle check was not doing it work, so
-        // we consider the duration to be as much as a complete idle period
+        // we consider the duration to be as much as a complete idle Duration
         if (elapsedPeriodBetweenLastEventAndNow <= idleMinIntervalInSeconds) {
-            endableEntity.setDuration(new Period(endableEntity.getCreationTime(), currentTime));
+            endableEntity.setDuration(Duration.between(endableEntity.getCreationTime(), currentTime));
         } else {
             // if event/state type is system related we track
             // whatever it is (no exceptions or checks about duration)
             if (endableEntity.getType() == ActivityType.System
                     || endableEntity.getType() == ActivityType.OpenSolution) {
-                endableEntity.setDuration(new Period(endableEntity.getCreationTime(), currentTime));
+                endableEntity.setDuration(Duration.between(endableEntity.getCreationTime(), currentTime));
             } else {
                 // else, we ensure it does not have inconsistent time
-                endableEntity.setDuration(new Period(endableEntity.getCreationTime(), entityBaseEnd.plusSeconds(idleMinIntervalInSeconds).toDateTime()));
+                endableEntity.setDuration(Duration.between(endableEntity.getCreationTime(), entityBaseEnd.plusSeconds(idleMinIntervalInSeconds)));
             }
 
         }
@@ -181,7 +181,7 @@ public class ActivitiesRecorder {
         }
 
         // saves time from last event
-        this.lastEventTime = DateTime.now();
+        this.lastEventTime = OffsetDateTime.now();
 
         TrackingConsole.getInstance().trackEvent(this.lastEvent);
 
@@ -200,8 +200,8 @@ public class ActivitiesRecorder {
     public FlushResult flush(String username, String token) throws UnknownHostException {
         List<ActivityState> statesToSend = null;
         List<ActivityEvent> eventsToSend = null;
-        DateTime batchStart = currentBatchStart;
-        DateTime batchEnd = DateTime.now();
+        OffsetDateTime batchStart = currentBatchStart;
+        OffsetDateTime batchEnd = OffsetDateTime.now();
 
         // if lastState or lastEvent are null then there is no info to flush
         // so lets skip this attempt
@@ -229,7 +229,7 @@ public class ActivitiesRecorder {
             this.events = new LinkedList<>();
             this.recordEvent(lastEvent.recreate());
 
-            currentBatchStart = DateTime.now();
+            currentBatchStart = OffsetDateTime.now();
         }
 
         // creates an info procesor

@@ -1,8 +1,8 @@
 package com.codealike.client.core.internal.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import org.joda.time.DateTime;
 
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
 public class SolutionContextInfo {
@@ -12,16 +12,12 @@ public class SolutionContextInfo {
     @JsonProperty("Name")
     private String name;
     @JsonProperty("CreationTime")
-    private DateTime creationTime;
-
-    public SolutionContextInfo() {
-        this.creationTime = new DateTime(0);
-    }
+    private OffsetDateTime creationTime;
 
     public SolutionContextInfo(UUID solutionID, String name) {
         this.solutionId = solutionID;
         this.name = name;
-        this.creationTime = DateTime.now();
+        this.creationTime = OffsetDateTime.now();
     }
 
     public UUID getSolutionId() {
@@ -42,12 +38,12 @@ public class SolutionContextInfo {
         this.name = name;
     }
 
-    public DateTime getCreationTime() {
+    public OffsetDateTime getCreationTime() {
         return creationTime;
     }
 
     @JsonProperty("CreationTime")
-    public void setCreationTime(DateTime creationTime) {
+    public void setCreationTime(OffsetDateTime creationTime) {
         this.creationTime = creationTime;
     }
 }

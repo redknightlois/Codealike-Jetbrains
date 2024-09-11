@@ -1,8 +1,8 @@
 package com.codealike.client.core.internal.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import org.joda.time.DateTime;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -17,13 +17,10 @@ public class ActivityInfo {
     private String instance;
     private UUID solutionId;
     private UUID batchId;
-    private DateTime batchStart;
-    private DateTime batchEnd;
+    private OffsetDateTime batchStart;
+    private OffsetDateTime batchEnd;
 
-    public ActivityInfo() {
-    }
-
-    public ActivityInfo(String instance, UUID solutionId, UUID batchId, DateTime batchStart, DateTime batchEnd) {
+    public ActivityInfo(String instance, UUID solutionId, UUID batchId, OffsetDateTime batchStart, OffsetDateTime batchEnd) {
         this.instance = instance;
         this.solutionId = solutionId;
         this.batchId = batchId;
@@ -109,25 +106,22 @@ public class ActivityInfo {
 //		if (this.projects == null || this.projects.isEmpty()) {
 //			return false;
 //		}
-        if (this.states == null || this.states.isEmpty()) {
-            return false;
-        }
-        return true;
+        return this.states != null && !this.states.isEmpty();
     }
 
-    public DateTime getBatchStart() {
+    public OffsetDateTime getBatchStart() {
         return batchStart;
     }
 
-    public void setBatchStart(DateTime batchStart) {
+    public void setBatchStart(OffsetDateTime batchStart) {
         this.batchStart = batchStart;
     }
 
-    public DateTime getBatchEnd() {
+    public OffsetDateTime getBatchEnd() {
         return batchEnd;
     }
 
-    public void setBatchEnd(DateTime batchEnd) {
+    public void setBatchEnd(OffsetDateTime batchEnd) {
         this.batchEnd = batchEnd;
     }
 }

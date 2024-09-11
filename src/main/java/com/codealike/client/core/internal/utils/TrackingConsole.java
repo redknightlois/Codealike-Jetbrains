@@ -3,14 +3,13 @@
  */
 package com.codealike.client.core.internal.utils;
 
-import java.util.UUID;
-
-import org.joda.time.format.PeriodFormatter;
-
 import com.codealike.client.core.internal.model.ActivityEvent;
 import com.codealike.client.core.internal.model.ActivityState;
-import com.codealike.client.core.internal.serialization.PeriodSerializer;
 import com.codealike.client.core.internal.startup.PluginContext;
+
+import java.time.Duration;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Tracking console class. Used to print track events messages to console.
@@ -22,9 +21,9 @@ public class TrackingConsole {
     // Singleton instance
     private static TrackingConsole _instance;
     // The plugin context instance
-    private PluginContext context;
+    private final PluginContext context;
     // Flag to enable messages to the console
-    private boolean enabled;
+    private final boolean enabled;
 
     // private constructor
     private TrackingConsole(PluginContext context) {
@@ -66,8 +65,8 @@ public class TrackingConsole {
     public void trackEvent(ActivityEvent event) {
         if (enabled) {
             System.out.println("---------------------------------------------------------------------");
-            String formattedDate = context.getDateTimeFormatter().print(event.getCreationTime());
-            System.out.println(String.format("Event: type:%s, time:%s", event.getType().toString(), formattedDate));
+            String formattedDate = context.getDateTimeFormatter().format(event.getCreationTime());
+            System.out.printf("Event: type:%s, time:%s%n", event.getType().toString(), formattedDate);
             System.out.println(event.getContext().toString());
             System.out.println("---------------------------------------------------------------------");
         }
@@ -80,8 +79,22 @@ public class TrackingConsole {
      */
     public void trackState(ActivityState state) {
         if (enabled) {
-            PeriodFormatter formatter = PeriodSerializer.FORMATER;
-            System.out.println(String.format("Last recorded state: type:%s, duration:%s\n", state.getType().toString(), state.getDuration().toString(formatter)));
+            Duration duration = state.getDuration();
+
+            long millis = duration.toMillis();
+            long absMillis = Math.abs(millis);
+
+            long hours = TimeUnit.MILLISECONDS.toHours(absMillis);
+            long minutes = TimeUnit.MILLISECONDS.toMinutes(absMillis) % 60;
+            long seconds = TimeUnit.MILLISECONDS.toSeconds(absMillis) % 60;
+            long milliseconds = absMillis % 1000;
+
+            String formattedDuration = String.format("%s%02d:%02d:%02d.%03d",
+                    (millis < 0 ? "-" : ""), hours, minutes, seconds, milliseconds);
+
+            System.out.printf("Last recorded state: type:%s, duration:%s\n%n",
+                    state.getType().toString(),
+                    formattedDuration);
         }
     }
 
@@ -93,7 +106,7 @@ public class TrackingConsole {
      */
     public void trackProjectEnd(String name, UUID id) {
         if (enabled) {
-            System.out.println(String.format("Stopped tracking project \"%s\" with id %s", name, id));
+            System.out.printf("Stopped tracking project \"%s\" with id %s%n", name, id);
         }
     }
 
@@ -105,7 +118,7 @@ public class TrackingConsole {
      */
     public void trackProjectStart(String name, UUID id) {
         if (enabled) {
-            System.out.println(String.format("Started tracking project \"%s\" with id %s", name, id));
+            System.out.printf("Started tracking project \"%s\" with id %s%n", name, id);
         }
     }
 

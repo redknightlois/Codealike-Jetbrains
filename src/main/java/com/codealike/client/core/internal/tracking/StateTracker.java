@@ -27,11 +27,16 @@ import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Disposer;
 import com.intellij.openapi.vfs.VirtualFile;
-import com.intellij.psi.*;
+import com.intellij.psi.PsiClass;
+import com.intellij.psi.PsiDocumentManager;
+import com.intellij.psi.PsiElement;
+import com.intellij.psi.PsiFile;
+import com.intellij.psi.PsiJavaFile;
+import com.intellij.psi.PsiMember;
 import com.intellij.psi.util.PsiTreeUtil;
-import org.joda.time.DateTime;
-import org.joda.time.Period;
 
+import java.time.Duration;
+import java.time.OffsetDateTime;
 import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -45,11 +50,12 @@ import java.util.concurrent.TimeUnit;
  */
 public class StateTracker {
 
-    private ActivitiesRecorder recorder;
+    private final ActivitiesRecorder recorder;
+    private final ContextCreator contextCreator;
+
     private ActivityState lastState;
 
     private ActivityEvent lastEvent;
-    private ContextCreator contextCreator;
     private ScheduledExecutorService idleDetectionExecutor;
 
     private DocumentListener documentListener;
@@ -110,7 +116,7 @@ public class StateTracker {
         VirtualFile file = FileDocumentManager.getInstance().getFile(editor.getDocument());
 
         // if no file was obtained or file is special ide file 'fragment.java' skip process
-        if (file == null || file.getName() == "fragment.java")
+        if (file == null || file.getName().equals("fragment.java"))
             return null;
 
         // create code context and populate with event information
@@ -192,7 +198,7 @@ public class StateTracker {
         }
     }
 
-    public void startTrackingProject(Project project, UUID projectId, DateTime startWorkspaceDate) {
+    public void startTrackingProject(Project project, UUID projectId, OffsetDateTime startWorkspaceDate) {
         ActivityEvent openSolutionEvent = new ActivityEvent(projectId, ActivityType.OpenSolution, contextCreator.createCodeContext(project));
         openSolutionEvent.setCreationTime(startWorkspaceDate);
 
@@ -294,9 +300,9 @@ public class StateTracker {
         if (recorder.getLastState().getType() == ActivityType.Idle) {
             recorder.updateLastState();
         } else {
-            DateTime currentTime = DateTime.now();
+            OffsetDateTime currentTime = OffsetDateTime.now();
             long idleMaxPeriodInSeconds = PluginContext.getInstance().getConfiguration().getIdleMinInterval() / 1000;
-            long elapsedFromLastEventInSeconds = new Period(recorder.getLastEventTime(), currentTime).toStandardSeconds().getSeconds();
+            long elapsedFromLastEventInSeconds = Duration.between(recorder.getLastEventTime(), currentTime).getSeconds();
             if (elapsedFromLastEventInSeconds >= idleMaxPeriodInSeconds) {
                 // not needed because idea cannot track another type than coding
                 // save last state type before going iddle
