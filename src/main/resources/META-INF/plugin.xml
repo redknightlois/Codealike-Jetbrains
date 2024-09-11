@@ -35,8 +35,8 @@
 
   <actions>
     <!-- Add your actions here -->
-    <group id="codealike.SettingsMenu" text="Codealike" description="Codealike Settings">
-      <add-to-group group-id="MainMenu" anchor="before" relative-to-action="HelpMenu" />
+    <group id="codealike.SettingsMenu" text="Codealike" description="Codealike Settings" popup="true">
+      <add-to-group group-id="MainMenu" anchor="before" relative-to-action="HelpMenu"  />
       <action id="codealike.settings" class="com.codealike.client.intellij.CodealikeSettingsAction" text="Settings" />
     </group>
 
