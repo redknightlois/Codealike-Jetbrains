@@ -318,7 +318,7 @@ public class PluginContext {
 
     private void showIcompatibleVersionDialog() {
         String title = "This version is not updated";
-        String text = "Click below to be on the bleeding edge and enjoy an improved version of CodealikeApplicationComponent.";
+        String text = "Click below to be on the bleeding edge and enjoy an improved version of Codealike.";
 		/*ErrorDialogView dialog = new ErrorDialogView(PlatformUI.getWorkbench().getActiveWorkbenchWindow().getShell(), title, text, "Download the latest.", "images/bigCodealike.jpg",
 			new Runnable() {
 				

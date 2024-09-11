@@ -42,9 +42,7 @@
 
   </actions>
 
-  <application-components>
-    <component>
-      <implementation-class>com.codealike.client.intellij.CodealikeApplicationComponent</implementation-class>
-    </component>
-  </application-components>
+  <applicationListeners>
+    <listener class="com.codealike.client.intellij.CodealikeLifecycleListener" topic="com.intellij.ide.AppLifecycleListener"/>
+  </applicationListeners>
 </idea-plugin>
