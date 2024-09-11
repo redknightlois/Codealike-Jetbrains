@@ -45,28 +45,6 @@ dependencies {
         instrumentationTools()
     }
 
-    implementation("jakarta.activation:jakarta.activation-api:2.1.0")
-    implementation("jakarta.annotation:jakarta.annotation-api:2.1.0")
-    implementation("jakarta.inject:jakarta.inject-api:2.0.1.MR")
-    implementation("com.fasterxml.jackson.core:jackson-databind:2.14.0")
-    implementation("com.fasterxml.jackson.core:jackson-annotations:2.14.0")
-    implementation("com.fasterxml.jackson.core:jackson-core:2.14.0")
-    implementation("org.apache.httpcomponents:httpclient:4.5.14")
-    implementation("org.apache.httpcomponents:httpcore:4.4.16")
-    implementation("cglib:cglib:3.3.0")
-    implementation("com.google.guava:guava:31.1-jre")
-    implementation("org.glassfish.hk2:hk2:3.1.0")
-    implementation("org.glassfish.hk2:hk2-utils:3.1.0")
-    implementation("org.glassfish.hk2:hk2-locator:3.1.0")
-    implementation("org.glassfish.jersey.core:jersey-common:3.1.5")
-    implementation("org.glassfish.jersey.inject:jersey-hk2:3.1.5")
-    implementation("log4j:log4j:1.2.17")
-    implementation("nekohtml:nekohtml:1.9.6.2")
-
-    libs("jakarta.ws.rs:jakarta.ws.rs-api:3.1.0")
-    libs("jakarta.xml.bind:jakarta.xml.bind-api:4.0.2")
-    libs("org.glassfish.jersey.core:jersey-client:3.1.5")
-    libs("org.osgi:osgi.core:8.0.0")
     libs("joda-time:joda-time:2.12.2")
     configurations.implementation.get().extendsFrom(libs)
 }
