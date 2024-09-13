@@ -3,26 +3,32 @@
  */
 package com.codealike.client.core.api;
 
-import com.codealike.client.core.internal.dto.*;
+import com.codealike.client.core.internal.dto.ActivityInfo;
+import com.codealike.client.core.internal.dto.HealthInfo;
+import com.codealike.client.core.internal.dto.PluginSettingsInfo;
+import com.codealike.client.core.internal.dto.ProfileInfo;
+import com.codealike.client.core.internal.dto.SolutionContextInfo;
+import com.codealike.client.core.internal.dto.UserConfigurationInfo;
+import com.codealike.client.core.internal.dto.Version;
 import com.codealike.client.core.internal.startup.PluginContext;
+import com.codealike.client.core.internal.utils.LogManager;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
-import jakarta.ws.rs.ProcessingException;
-import jakarta.ws.rs.client.*;
-import jakarta.ws.rs.core.MediaType;
-import jakarta.ws.rs.core.Response;
-import org.glassfish.jersey.client.ClientProperties;
+import org.jetbrains.annotations.NotNull;
 
-import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
-import java.net.ConnectException;
+import javax.net.ssl.X509TrustManager;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
-import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.time.Duration;
 import java.util.UUID;
 
 /**
@@ -32,16 +38,20 @@ import java.util.UUID;
  * @version 1.6.0.0
  */
 public class ApiClient {
+    private static final LogManager LOG = LogManager.INSTANCE;
 
-    // Headers for API authentication
     private static final String X_EAUTH_CLIENT_HEADER = "X-Eauth-Client";
     private static final String X_EAUTH_TOKEN_HEADER = "X-Api-Token";
-    public static final String X_EAUTH_IDENTITY_HEADER = "X-Api-Identity";
-    // Number of API retries
-    public static final int MAX_RETRIES = 5;
-    private final WebTarget apiTarget;
-    private String identity;
-    private String token;
+    private static final String X_EAUTH_IDENTITY_HEADER = "X-Api-Identity";
+
+    private static final int CONNECT_TIMEOUT = 30000;
+    private static final int READ_TIMEOUT = 5000;
+
+    private final HttpClient httpClient;
+    private final String apiUrl;
+
+    private final String identity;
+    private final String token;
 
     /**
      * Create a new API client. Used to communicate with the Codealike remote server.
@@ -62,64 +72,80 @@ public class ApiClient {
      * @throws KeyManagementException if any error with token occurs
      */
     public static ApiClient tryCreateNew() throws KeyManagementException {
-        return new ApiClient();
+        return new ApiClient("", "");
     }
 
     /**
-     * API Client constructor. Used to communicate with the Codealike remote server.
+     * Constructor for `ApiClient` class.
+     * <p>
+     * It initializes the HttpClient, apiUrl, identity, and token fields.
      *
-     * @throws KeyManagementException if any error with token occurs
+     * @param identity A String representing the identity, if it's null it will be assigned an empty string
+     * @param token    A String representing the token, if it's null it will be assigned an empty string
+     * @throws KeyManagementException if a failure occurred during the SSL context configuration in the HttpClient
      */
-    protected ApiClient() throws KeyManagementException {
-        ClientBuilder builder = ClientBuilder.newBuilder();
-        TrustManager[] certs = new TrustManager[]{new javax.net.ssl.X509TrustManager() {
+    private ApiClient(String identity, String token) throws KeyManagementException {
+        this.httpClient = createHttpClient();
+        this.apiUrl = PluginContext.getInstance().getConfiguration().getApiUrl();
+        this.identity = identity != null ? identity : "";
+        this.token = token != null ? token : "";
+    }
+
+    /**
+     * Factory method that creates and returns an HttpClient object with specified settings.
+     *
+     * @return HttpClient which is configured for SSL context, HTTP version, connection timeout, and follow redirects
+     * @throws KeyManagementException if a failure occurred during retrieving or setting SSL Context or SSL context initialization
+     */
+    private HttpClient createHttpClient() throws KeyManagementException {
+        TrustManager[] trustManagers = createTrustManagers();
+        SSLContext sslContext = createSslContext(trustManagers);
+
+        return HttpClient.newBuilder()
+                .sslContext(sslContext)
+                .version(HttpClient.Version.HTTP_2)
+                .connectTimeout(Duration.ofMillis(CONNECT_TIMEOUT))
+                .followRedirects(HttpClient.Redirect.NORMAL)
+                .build();
+    }
+
+    /**
+     * Factory method that creates and returns an array of TrustManager objects with custom settings.
+     *
+     * @return Array of TrustManager objects
+     */
+    private TrustManager[] createTrustManagers() {
+        return new TrustManager[]{new X509TrustManager() {
             @Override
             public X509Certificate[] getAcceptedIssuers() {
-                return new X509Certificate[]{};
+                return new X509Certificate[0];
             }
 
             @Override
-            public void checkServerTrusted(X509Certificate[] chain,
-                                           String authType) throws CertificateException {
+            public void checkServerTrusted(X509Certificate[] chain, String authType) {
             }
 
             @Override
-            public void checkClientTrusted(X509Certificate[] chain,
-                                           String authType) throws CertificateException {
+            public void checkClientTrusted(X509Certificate[] chain, String authType) {
             }
         }};
-
-        SSLContext sslContext = null;
-        try {
-            sslContext = SSLContext.getInstance("SSL");
-            sslContext.init(null, certs, new SecureRandom());
-        } catch (NoSuchAlgorithmException e1) {
-            e1.printStackTrace();
-        }
-
-        builder.sslContext(sslContext).hostnameVerifier(HttpsURLConnection.getDefaultHostnameVerifier());
-
-        Client client = builder.build();
-        client.property(ClientProperties.CONNECT_TIMEOUT, 30000);
-        client.property(ClientProperties.READ_TIMEOUT, 5000);
-
-        apiTarget = client.target(PluginContext.getInstance().getConfiguration().getApiUrl());
-        this.identity = "";
-        this.token = "";
     }
 
     /**
-     * API Client constructor.
+     * Factory method that creates and returns an SSLContext object with specified TrustManagers.
      *
-     * @param identity the user identity
-     * @param token    the user token
-     * @throws KeyManagementException if any error with token occurs
+     * @param trustManagers an array of trust managers to use for initializing the SSL context
+     * @return SSLContext which is configured with the given trust managers
+     * @throws KeyManagementException if a failure occurred during initializing the SSL context
      */
-    protected ApiClient(String identity, String token) throws KeyManagementException {
-        this();
-        if (identity != null && token != null) {
-            this.identity = identity;
-            this.token = token;
+    private SSLContext createSslContext(TrustManager[] trustManagers) throws KeyManagementException {
+        try {
+            SSLContext sslContext = SSLContext.getInstance("SSL");
+            sslContext.init(null, trustManagers, new SecureRandom());
+            return sslContext;
+        } catch (NoSuchAlgorithmException | KeyManagementException exception) {
+            LOG.logWarn("Error initializing SSL context: " + exception.getMessage());
+            throw new KeyManagementException("Failed to initialize SSL context", exception);
         }
     }
 
@@ -130,72 +156,38 @@ public class ApiClient {
      */
     public static ApiResponse<PluginSettingsInfo> getPluginSettings() {
         ObjectMapper mapper = new ObjectMapper();
-        ClientBuilder builder = ClientBuilder.newBuilder();
-        Client client = builder.build();
-        client.property(ClientProperties.CONNECT_TIMEOUT, 30000);
-        client.property(ClientProperties.READ_TIMEOUT, 5000);
+        HttpClient client = HttpClient.newBuilder()
+                .connectTimeout(Duration.ofMillis(CONNECT_TIMEOUT))
+                .build();
 
-        WebTarget pluginSettingsTarget = client.target("https://codealike.com/api/v2/public/PluginsConfiguration");
-
-        Invocation.Builder invocationBuilder = pluginSettingsTarget.request(
-                MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_JSON);
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create("https://codealike.com/api/v2/public/PluginsConfiguration"))
+                .header("Accept", "application/json")
+                .timeout(Duration.ofMillis(READ_TIMEOUT))
+                .GET()
+                .build();
 
         try {
-            Response response;
-            try {
-                response = invocationBuilder.get();
-            } catch (Exception e) {
-                return new ApiResponse<>(ApiResponse.Status.ConnectionProblems);
-            }
-
-            if (response.getStatusInfo().getStatusCode() == Response.Status.OK.getStatusCode()) {
-                // process response to get a valid json string representation
-                String serializedObject = response.readEntity(String.class);
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() == 200) {
+                String serializedObject = response.body();
                 String normalizedObject = serializedObject.substring(1, serializedObject.length() - 1).replace("\\", "");
 
-                // parse the json object to get a valid plugin settings object
                 PluginSettingsInfo pluginSettingsInfo = mapper.readValue(normalizedObject, PluginSettingsInfo.class);
-
                 if (pluginSettingsInfo != null) {
-                    return new ApiResponse<>(
-                            response.getStatus(), response.getStatusInfo()
-                            .getReasonPhrase(), pluginSettingsInfo);
+                    return new ApiResponse<>(response.statusCode(), response.headers()
+                            .firstValue("reason").orElse("OK"), pluginSettingsInfo);
                 } else {
                     return new ApiResponse<>(ApiResponse.Status.ClientError,
                             "Problem parsing data from the server.");
                 }
             } else {
-                return new ApiResponse<>(response.getStatus(), response
-                        .getStatusInfo().getReasonPhrase());
+                return new ApiResponse<>(response.statusCode(), response.headers()
+                        .firstValue("reason").orElse("Error"));
             }
-        } catch (Exception e) {
+        } catch (Exception exception) {
             return new ApiResponse<>(ApiResponse.Status.ClientError,
-                    String.format("Problem parsing data from the server. %s",
-                            e.getMessage()));
-        }
-    }
-
-    /**
-     * Check API health.
-     *
-     * @return the {@link ApiResponse} instance
-     */
-    public ApiResponse<Void> health() {
-        try {
-            WebTarget target = apiTarget.path("health");
-
-            Invocation.Builder invocationBuilder = target
-                    .request(MediaType.APPLICATION_JSON);
-            Response response = invocationBuilder.get();
-            return new ApiResponse<>(response.getStatus(), response
-                    .getStatusInfo().getReasonPhrase());
-        } catch (ProcessingException e) {
-            if (e.getCause() != null
-                    && e.getCause() instanceof ConnectException) {
-                return new ApiResponse<>(ApiResponse.Status.ConnectionProblems);
-            } else {
-                return new ApiResponse<>(ApiResponse.Status.ClientError);
-            }
+                    String.format("Problem parsing data from the server: %s", exception.getMessage()));
         }
     }
 
@@ -203,32 +195,64 @@ public class ApiClient {
      * Log the plugin health information to the remote server.
      *
      * @param healthInfo the health information object to update
+     */
+    public void logHealth(HealthInfo healthInfo) {
+        try {
+            URI uri = URI.create(apiUrl + "/health");
+
+            String healthInfoLog = serializeDataToJson(healthInfo);
+
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(uri)
+                    .header("Accept", "application/json")
+                    .header("Content-Type", "application/json")
+                    .header(X_EAUTH_IDENTITY_HEADER, this.identity)
+                    .header(X_EAUTH_TOKEN_HEADER, this.token)
+                    .header(X_EAUTH_CLIENT_HEADER, "intellij")
+                    .timeout(Duration.ofMillis(READ_TIMEOUT))
+                    .PUT(HttpRequest.BodyPublishers.ofString(healthInfoLog))
+                    .build();
+
+            HttpClient client = HttpClient.newHttpClient();
+            HttpResponse<Void> response = client.send(request, HttpResponse.BodyHandlers.discarding());
+
+            int statusCode = response.statusCode();
+            String reasonPhrase = response.headers().firstValue("reason").orElse("No reason provided");
+
+            LOG.logInfo("Health log response: " + statusCode + " - " + reasonPhrase);
+
+        } catch (JsonProcessingException exception) {
+            LOG.logWarn("Error processing JSON for health log: " + exception.getMessage());
+        } catch (Exception exception) {
+            LOG.logWarn("Error sending health log request: " + exception.getMessage());
+        }
+    }
+
+    /**
+     * Do an account authentication using the Codealike token.
+     *
      * @return the {@link ApiResponse} instance
      */
-    public ApiResponse<Void> logHealth(HealthInfo healthInfo) {
+    public ApiResponse<Void> tokenAuthenticate() {
         try {
-            WebTarget target = apiTarget.path("health");
+            URI uri = URI.create(apiUrl + "/account/" + this.identity + "/authorized");
 
-            ObjectWriter writer = PluginContext.getInstance().getJsonWriter();
-            String healthInfoLog = writer.writeValueAsString(healthInfo);
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(uri)
+                    .header("Accept", "application/json")
+                    .header(X_EAUTH_IDENTITY_HEADER, this.identity)
+                    .header(X_EAUTH_TOKEN_HEADER, this.token)
+                    .header(X_EAUTH_CLIENT_HEADER, "intellij")
+                    .timeout(Duration.ofMillis(READ_TIMEOUT))
+                    .GET()
+                    .build();
 
-            Invocation.Builder invocationBuilder = target.request().accept(
-                    MediaType.APPLICATION_JSON);
-            addHeaders(invocationBuilder);
+            HttpResponse<Void> response = httpClient.send(request, HttpResponse.BodyHandlers.discarding());
 
-            Response response;
-            try {
-                response = invocationBuilder.put(Entity.entity(healthInfoLog,
-                        MediaType.APPLICATION_JSON));
-            } catch (Exception e) {
-                return new ApiResponse<>(ApiResponse.Status.ConnectionProblems);
-            }
-            return new ApiResponse<>(response.getStatus(), response
-                    .getStatusInfo().getReasonPhrase());
-        } catch (JsonProcessingException e) {
-            return new ApiResponse<>(ApiResponse.Status.ClientError,
-                    String.format("Problem parsing data from the server. %s",
-                            e.getMessage()));
+            return new ApiResponse<>(response.statusCode(), response.headers().firstValue("reason").orElse("OK"));
+        } catch (Exception exception) {
+            LOG.logWarn("Error during token authentication " + exception.getMessage());
+            return new ApiResponse<>(ApiResponse.Status.ConnectionProblems);
         }
     }
 
@@ -238,8 +262,8 @@ public class ApiClient {
      * @return the {@link ApiResponse} instance with {@link Version} information
      */
     public ApiResponse<Version> version() {
-        WebTarget target = apiTarget.path("version").queryParam("client", "intellij");
-        return doGet(target, Version.class);
+        String path = "/version?client=intellij";
+        return get(path, Version.class);
     }
 
     /**
@@ -249,8 +273,8 @@ public class ApiClient {
      * @return the {@link ApiResponse} instance with {@link SolutionContextInfo} information
      */
     public ApiResponse<SolutionContextInfo> getSolutionContext(UUID projectId) {
-        WebTarget target = apiTarget.path("solution").path(projectId.toString());
-        return doGet(target, SolutionContextInfo.class);
+        String path = "/solution/" + projectId.toString();
+        return get(path, SolutionContextInfo.class);
     }
 
     /**
@@ -260,8 +284,8 @@ public class ApiClient {
      * @return the {@link ApiResponse} instance with {@link ProfileInfo} information
      */
     public ApiResponse<ProfileInfo> getProfile(String username) {
-        WebTarget target = apiTarget.path("account").path(username).path("profile");
-        return doGet(target, ProfileInfo.class);
+        String path = "/account/" + username + "/profile";
+        return get(path, ProfileInfo.class);
     }
 
     /**
@@ -271,8 +295,8 @@ public class ApiClient {
      * @return the {@link ApiResponse} instance with {@link UserConfigurationInfo} information
      */
     public ApiResponse<UserConfigurationInfo> getUserConfiguration(String username) {
-        WebTarget target = apiTarget.path("account").path(username).path("config");
-        return doGet(target, UserConfigurationInfo.class);
+        String path = "/account/" + username + "/config";
+        return get(path, UserConfigurationInfo.class);
     }
 
     /**
@@ -283,31 +307,8 @@ public class ApiClient {
      * @return the {@link ApiResponse} instance
      */
     public ApiResponse<Void> registerProjectContext(UUID projectId, String name) {
-        try {
-            SolutionContextInfo solutionContext = new SolutionContextInfo(
-                    projectId, name);
-            WebTarget target = apiTarget.path("solution");
-
-            ObjectWriter writer = PluginContext.getInstance().getJsonWriter();
-            String solutionAsJson = writer.writeValueAsString(solutionContext);
-            Invocation.Builder invocationBuilder = target.request().accept(
-                    MediaType.APPLICATION_JSON);
-            addHeaders(invocationBuilder);
-
-            Response response;
-            try {
-                response = invocationBuilder.post(Entity.entity(solutionAsJson,
-                        MediaType.APPLICATION_JSON));
-            } catch (Exception e) {
-                return new ApiResponse<>(ApiResponse.Status.ConnectionProblems);
-            }
-            return new ApiResponse<>(response.getStatus(), response
-                    .getStatusInfo().getReasonPhrase());
-        } catch (JsonProcessingException e) {
-            return new ApiResponse<>(ApiResponse.Status.ClientError,
-                    String.format("Problem parsing data from the server. %s",
-                            e.getMessage()));
-        }
+        String path = "/solution";
+        return post(path, new SolutionContextInfo(projectId, name));
     }
 
     /**
@@ -317,104 +318,90 @@ public class ApiClient {
      * @return the {@link ApiResponse} instance
      */
     public ApiResponse<Void> postActivityInfo(ActivityInfo info) {
-        try {
-            WebTarget target = apiTarget.path("activity");
-
-            ObjectWriter writer = PluginContext.getInstance().getJsonWriter();
-            String activityInfoAsJson = writer.writeValueAsString(info);
-            Invocation.Builder invocationBuilder = target.request().accept(
-                    MediaType.APPLICATION_JSON);
-            addHeaders(invocationBuilder);
-
-            Response response;
-            try {
-                response = invocationBuilder.post(Entity.entity(
-                        activityInfoAsJson, MediaType.APPLICATION_JSON));
-            } catch (Exception e) {
-                return new ApiResponse<>(ApiResponse.Status.ConnectionProblems);
-            }
-            return new ApiResponse<>(response.getStatus(), response
-                    .getStatusInfo().getReasonPhrase());
-        } catch (JsonProcessingException e) {
-            return new ApiResponse<>(ApiResponse.Status.ClientError,
-                    String.format("Problem parsing data from the server. %s",
-                            e.getMessage()));
-        }
+        String path = "/activity";
+        return post(path, info);
     }
 
     /**
-     * Do an account authentication using the Codealike token.
-     *
-     * @return the {@link ApiResponse} instance
+     * Private method to do an API POST.
      */
-    public ApiResponse<Void> tokenAuthenticate() {
-        WebTarget target = apiTarget.path("account").path(this.identity)
-                .path("authorized");
-        Invocation.Builder invocationBuilder = target.request(
-                MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_JSON);
-
-        addHeaders(invocationBuilder);
-
-        Response response;
+    @NotNull
+    private ApiResponse<Void> post(String path, Object data) {
         try {
-            response = invocationBuilder.get();
+            URI uri = URI.create(apiUrl + path);
+            String jsonData = serializeDataToJson(data);
+
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(uri)
+                    .header("Accept", "application/json")
+                    .header("Content-Type", "application/json")
+                    .header(X_EAUTH_IDENTITY_HEADER, this.identity)
+                    .header(X_EAUTH_TOKEN_HEADER, this.token)
+                    .header(X_EAUTH_CLIENT_HEADER, "intellij")
+                    .timeout(Duration.ofMillis(READ_TIMEOUT))
+                    .POST(HttpRequest.BodyPublishers.ofString(jsonData))
+                    .build();
+            HttpResponse<Void> response = httpClient.send(request, HttpResponse.BodyHandlers.discarding());
+
+            return new ApiResponse<>(response.statusCode(),
+                    response.headers().firstValue("reason").orElse("OK"));
+        } catch (JsonProcessingException e) {
+            return new ApiResponse<>(ApiResponse.Status.ClientError,
+                    String.format("Problem parsing data to JSON: %s", e.getMessage()));
         } catch (Exception e) {
             return new ApiResponse<>(ApiResponse.Status.ConnectionProblems);
         }
-        return new ApiResponse<>(response.getStatus(), response.getStatusInfo()
-                .getReasonPhrase());
-    }
-
-    /**
-     * Private method to add headers to request.
-     */
-    private void addHeaders(Invocation.Builder invocationBuilder) {
-        invocationBuilder.header(X_EAUTH_IDENTITY_HEADER, this.identity);
-        invocationBuilder.header(X_EAUTH_TOKEN_HEADER, this.token);
-        invocationBuilder.header(X_EAUTH_CLIENT_HEADER, "intellij");
     }
 
     /**
      * Private method to do an API GET.
      */
-    private <T> ApiResponse<T> doGet(WebTarget target, Class<T> type) {
-        Invocation.Builder invocationBuilder = target.request(
-                MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_JSON);
-        addHeaders(invocationBuilder);
-
+    private <T> ApiResponse<T> get(String path, Class<T> type) {
         try {
-            Response response;
-            try {
-                response = invocationBuilder.get();
-            } catch (Exception e) {
-                return new ApiResponse<>(ApiResponse.Status.ConnectionProblems);
-            }
+            URI uri = URI.create(apiUrl + path);
 
-            if (response.getStatusInfo().getStatusCode() == Response.Status.OK
-                    .getStatusCode()) {
-                String solutionContextInfoSerialized = response
-                        .readEntity(String.class);
-                ObjectMapper mapper = PluginContext.getInstance()
-                        .getJsonMapper();
-                T contextInfo = mapper.readValue(
-                        solutionContextInfoSerialized,
-                        type);
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(uri)
+                    .header("Accept", "application/json")
+                    .header("Content-Type", "application/json")
+                    .header(X_EAUTH_IDENTITY_HEADER, this.identity)
+                    .header(X_EAUTH_TOKEN_HEADER, this.token)
+                    .header(X_EAUTH_CLIENT_HEADER, "intellij")
+                    .timeout(Duration.ofMillis(READ_TIMEOUT))
+                    .GET()
+                    .build();
+
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() == 200) {
+                ObjectMapper mapper = PluginContext.getInstance().getJsonMapper();
+                T contextInfo = mapper.readValue(response.body(), type);
                 if (contextInfo != null) {
-                    return new ApiResponse<>(
-                            response.getStatus(), response.getStatusInfo()
-                            .getReasonPhrase(), contextInfo);
+                    return new ApiResponse<>(response.statusCode(),
+                            response.headers().firstValue("reason").orElse("OK"), contextInfo);
                 } else {
                     return new ApiResponse<>(ApiResponse.Status.ClientError,
                             "Problem parsing data from the server.");
                 }
             } else {
-                return new ApiResponse<>(response.getStatus(), response
-                        .getStatusInfo().getReasonPhrase());
+                return new ApiResponse<>(response.statusCode(),
+                        response.headers().firstValue("reason").orElse("Error"));
             }
-        } catch (Exception e) {
+        } catch (Exception exception) {
             return new ApiResponse<>(ApiResponse.Status.ClientError,
-                    String.format("Problem parsing data from the server. %s",
-                            e.getMessage()));
+                    String.format("Problem parsing data from the server: %s", exception.getMessage()));
         }
+    }
+
+    /**
+     * Converts a given object to its JSON representation.
+     *
+     * @param data the object that needs to be converted to JSON.
+     * @return a String containing the JSON representation of the input object.
+     * @throws JsonProcessingException if the input object could not be converted to JSON.
+     */
+    private String serializeDataToJson(Object data) throws JsonProcessingException {
+        ObjectWriter writer = PluginContext.getInstance().getJsonWriter();
+        return writer.writeValueAsString(data);
     }
 }

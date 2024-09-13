@@ -13,7 +13,7 @@ import com.intellij.openapi.Disposable;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.startup.StartupActivity;
 import org.jetbrains.annotations.NotNull;
-import org.joda.time.DateTime;
+import java.time.OffsetDateTime;
 
 /**
  * Plugin project service.
@@ -46,12 +46,12 @@ public class CodealikeProjectService implements Disposable {
             switch (identityService.getTrackActivity()) {
                 case Always: {
                     trackingService.enableTracking();
-                    trackingService.startTracking(project, DateTime.now());
+                    trackingService.startTracking(project, OffsetDateTime.now());
                     break;
                 }
                 case AskEveryTime:
                 case Never:
-                    Notification note = new Notification("CodealikeApplicationComponent.Notifications",
+                    Notification note = new Notification("CodealikeLifecycleListener.Notifications",
                             "Codealike",
                             "Codealike  is not tracking your projects",
                             NotificationType.INFORMATION);

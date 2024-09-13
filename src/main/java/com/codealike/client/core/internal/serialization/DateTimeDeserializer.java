@@ -3,37 +3,36 @@
  */
 package com.codealike.client.core.internal.serialization;
 
-import com.codealike.client.core.internal.startup.PluginContext;
 import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
-import org.joda.time.DateTime;
-import org.joda.time.format.DateTimeFormatter;
 
 import java.io.IOException;
+import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
 
-public class DateTimeDeserializer extends JsonDeserializer<DateTime> {
+public class DateTimeDeserializer extends JsonDeserializer<OffsetDateTime> {
 
     @Override
-    public DateTime deserialize(JsonParser jsonParser, DeserializationContext context)
-            throws IOException, JsonProcessingException {
+    public OffsetDateTime deserialize(JsonParser jsonParser, DeserializationContext context)
+            throws IOException {
 
-        DateTimeFormatter formatter = PluginContext.getInstance().getDateTimeParser();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS");
 
         if (jsonParser.getCurrentToken() == JsonToken.VALUE_STRING) {
             String date = jsonParser.getValueAsString();
             String[] tokens = date.split("\\.");
             if (tokens.length > 1 && tokens[1].length() > 3) {
+                // Handling fractional seconds
                 String fractionalSecsAsString = tokens[1].replace("Z", "");
                 int fractionalSecs = Integer.parseInt(fractionalSecsAsString) / 10000;
-                return formatter.parseDateTime(String.format("%s.%03d", tokens[0], fractionalSecs));
+                String formattedDate = String.format("%s.%03dZ", tokens[0], fractionalSecs);
+                return OffsetDateTime.parse(formattedDate, formatter);
             }
-            return formatter.parseDateTime(date);
+            return OffsetDateTime.parse(date, formatter);
         }
 
-        throw context.instantiationException(DateTime.class, "Expected string value to parse a DateTime");
+        throw context.instantiationException(OffsetDateTime.class, "Expected string value to parse an OffsetDateTime");
     }
-
 }

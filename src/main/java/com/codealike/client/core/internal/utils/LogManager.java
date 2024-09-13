@@ -20,22 +20,22 @@ public class LogManager {
     }
 
     public void logError(String msg) {
-        logger.error("CodealikeApplicationComponent: " + msg);
+        logger.error("CodealikeLifecycleListener: " + msg);
     }
 
     public void logError(Throwable t, String msg) {
-        logger.error("CodealikeApplicationComponent: " + msg, t);
+        logger.error("CodealikeLifecycleListener: " + msg, t);
     }
 
     public void logWarn(String msg) {
-        logger.warn("CodealikeApplicationComponent: " + msg);
+        logger.warn("CodealikeLifecycleListener: " + msg);
     }
 
     public void logWarn(Throwable t, String msg) {
-        logger.warn("CodealikeApplicationComponent: " + msg, t);
+        logger.warn("CodealikeLifecycleListener: " + msg, t);
     }
 
     public void logInfo(String msg) {
-        logger.info("CodealikeApplicationComponent: " + msg);
+        logger.info("CodealikeLifecycleListener: " + msg);
     }
 }

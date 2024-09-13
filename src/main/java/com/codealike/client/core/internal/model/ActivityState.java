@@ -5,9 +5,9 @@ package com.codealike.client.core.internal.model;
 
 import com.codealike.client.core.internal.dto.ActivityType;
 import com.codealike.client.core.internal.startup.PluginContext;
-import org.joda.time.DateTime;
-import org.joda.time.Period;
 
+import java.time.Duration;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -22,37 +22,37 @@ public class ActivityState implements IEndable {
 
     public static final ActivityState NONE = new ActivityState();
 
-    protected Period duration;
+    protected Duration duration;
     protected ActivityType type;
-    protected DateTime creationTime;
+    protected OffsetDateTime creationTime;
     protected UUID projectId;
 
     protected ActivityState() {
         this.type = ActivityType.None;
-        this.duration = Period.ZERO;
+        this.duration = Duration.ZERO;
     }
 
-    protected ActivityState(UUID projectId, ActivityType type, DateTime creationTime) {
+    protected ActivityState(UUID projectId, ActivityType type, OffsetDateTime creationTime) {
         this.projectId = projectId;
         this.creationTime = creationTime;
         this.type = type;
-        this.duration = Period.ZERO;
+        this.duration = Duration.ZERO;
     }
 
     public static ActivityState createDebugState(UUID projectId) {
-        return new ActivityState(projectId, ActivityType.Debugging, DateTime.now());
+        return new ActivityState(projectId, ActivityType.Debugging, OffsetDateTime.now());
     }
 
     public static ActivityState createDesignState(UUID projectId) {
-        return new ActivityState(projectId, ActivityType.Coding, DateTime.now());
+        return new ActivityState(projectId, ActivityType.Coding, OffsetDateTime.now());
     }
 
     public static ActivityState createBuildState(UUID projectId) {
-        return new ActivityState(projectId, ActivityType.Building, DateTime.now());
+        return new ActivityState(projectId, ActivityType.Building, OffsetDateTime.now());
     }
 
     public static ActivityState createSystemState(UUID projectId) {
-        return new ActivityState(projectId, ActivityType.System, DateTime.now());
+        return new ActivityState(projectId, ActivityType.System, OffsetDateTime.now());
     }
 
     public static IdleActivityState createIdleState(UUID projectId) {
@@ -71,11 +71,11 @@ public class ActivityState implements IEndable {
         return NullActivityState.createNew(projectId);
     }
 
-    public Period getDuration() {
+    public Duration getDuration() {
         return duration;
     }
 
-    public void setDuration(Period duration) {
+    public void setDuration(Duration duration) {
         this.duration = duration;
     }
 
@@ -83,20 +83,20 @@ public class ActivityState implements IEndable {
         return type;
     }
 
-    public DateTime getCreationTime() {
+    public OffsetDateTime getCreationTime() {
         return creationTime;
     }
 
-    public void setCreationTime(DateTime startWorkspaceDate) {
+    public void setCreationTime(OffsetDateTime startWorkspaceDate) {
         this.creationTime = startWorkspaceDate;
     }
 
     public ActivityState recreate() {
-        return new ActivityState(this.projectId, this.type, DateTime.now());
+        return new ActivityState(this.projectId, this.type, OffsetDateTime.now());
     }
 
-    public void closeDuration(DateTime closeTo) {
-        this.duration = new Period(this.getCreationTime(), closeTo);
+    public void closeDuration(OffsetDateTime closeTo) {
+        this.duration = Duration.between(this.getCreationTime(), closeTo);
     }
 
     public UUID getProjectId() {
@@ -117,8 +117,7 @@ public class ActivityState implements IEndable {
     public boolean equals(Object state) {
         if (state == null) return false;
         if (state == this) return true;
-        if (!(state instanceof ActivityState)) return false;
-        ActivityState stateClass = (ActivityState) state;
+        if (!(state instanceof ActivityState stateClass)) return false;
 
         return (this.getProjectId() == stateClass.getProjectId()
                 && this.getType() == stateClass.getType());

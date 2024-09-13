@@ -9,7 +9,7 @@ import com.codealike.client.core.internal.dto.PluginSettingsInfo;
 import com.codealike.client.core.internal.dto.SolutionContextInfo;
 import com.codealike.client.core.internal.dto.Version;
 import com.codealike.client.core.internal.model.ProjectSettings;
-import com.codealike.client.core.internal.serialization.JodaPeriodModule;
+import com.codealike.client.core.internal.serialization.JavaTimeModule;
 import com.codealike.client.core.internal.services.IdentityService;
 import com.codealike.client.core.internal.services.TrackingService;
 import com.codealike.client.core.internal.tracking.code.ContextCreator;
@@ -24,17 +24,16 @@ import com.intellij.openapi.application.ApplicationNamesInfo;
 import com.intellij.openapi.components.impl.stores.IProjectStore;
 import com.intellij.openapi.project.Project;
 import com.intellij.project.ProjectKt;
-import org.joda.time.DateTime;
-import org.joda.time.DateTimeZone;
-import org.joda.time.format.DateTimeFormat;
-import org.joda.time.format.DateTimeFormatter;
-import org.joda.time.format.DateTimeFormatterBuilder;
 
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.file.Path;
 import java.security.KeyManagementException;
+import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
+import java.time.temporal.ChronoField;
 import java.util.Properties;
 import java.util.Random;
 import java.util.UUID;
@@ -47,41 +46,51 @@ import java.util.UUID;
  */
 @SuppressWarnings("restriction")
 public class PluginContext {
-    public static final String VERSION = "1.6.0.0";
     public static final UUID UNASSIGNED_PROJECT = UUID.fromString("00000000-0000-0000-0000-0000000001");
-    private static final String PLUGIN_PREFERENCES_QUALIFIER = "com.codealike.client.intellij";
+    private static final String VERSION = "1.6.0.0";
+
     private static PluginContext _instance;
-    private String ideName;
-    private Version protocolVersion;
-    private Properties properties;
-    private ObjectWriter jsonWriter;
-    private ObjectMapper jsonMapper;
-    private ContextCreator contextCreator;
-    private DateTimeFormatter dateTimeFormatter;
-    private DateTimeFormatter dateTimeParser;
-    private IdentityService identityService;
+
+    private final String ideName;
+    private final Version protocolVersion;
+    private final Properties properties;
+    private final ObjectWriter jsonWriter;
+    private final ObjectMapper jsonMapper;
+    private final ContextCreator contextCreator;
+    private final DateTimeFormatter dateTimeFormatter;
+    private final IdentityService identityService;
+    private final String instanceValue;
+    private final String machineName;
+    private final Configuration configuration;
+
     private TrackingService trackingService;
-    private String instanceValue;
-    private String machineName;
-    private Configuration configuration;
 
     public PluginContext(Properties properties) {
-        DateTimeZone.setDefault(DateTimeZone.UTC);
 
         ObjectMapper mapper = new ObjectMapper();
-        mapper.registerModule(new JodaPeriodModule());
+        mapper.registerModule(new JavaTimeModule());
         mapper.setSerializationInclusion(Include.NON_NULL);
         this.jsonWriter = mapper.writer().withDefaultPrettyPrinter();
         this.jsonMapper = mapper;
         this.contextCreator = new ContextCreator();
-        this.dateTimeParser = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ss.SSS");
-        this.dateTimeFormatter = new DateTimeFormatterBuilder().appendYear(4, 4).appendLiteral("-").
-                appendMonthOfYear(2).appendLiteral("-").appendDayOfMonth(2).
-                appendLiteral("T").appendHourOfDay(2).appendLiteral(":").
-                appendMinuteOfHour(2).appendLiteral(":").appendSecondOfMinute(2).
-                appendLiteral(".").appendMillisOfSecond(3).appendLiteral("Z").toFormatter();
+        this.dateTimeFormatter = new DateTimeFormatterBuilder()
+                .appendValue(ChronoField.YEAR, 4)
+                .appendLiteral("-")
+                .appendValue(ChronoField.MONTH_OF_YEAR, 2)
+                .appendLiteral("-")
+                .appendValue(ChronoField.DAY_OF_MONTH, 2)
+                .appendLiteral("T")
+                .appendValue(ChronoField.HOUR_OF_DAY, 2)
+                .appendLiteral(":")
+                .appendValue(ChronoField.MINUTE_OF_HOUR, 2)
+                .appendLiteral(":")
+                .appendValue(ChronoField.SECOND_OF_MINUTE, 2)
+                .appendLiteral(".")
+                .appendValue(ChronoField.MILLI_OF_SECOND, 3)
+                .appendLiteral("Z")
+                .toFormatter();
         this.identityService = IdentityService.getInstance();
-        this.instanceValue = String.valueOf(new Random(DateTime.now().getMillis()).nextInt(Integer.MAX_VALUE) + 1);
+        this.instanceValue = String.valueOf(new Random(OffsetDateTime.now().toInstant().toEpochMilli()).nextInt(Integer.MAX_VALUE) + 1);
         this.protocolVersion = new Version(0, 9);
         this.properties = properties;
         this.ideName = ApplicationNamesInfo.getInstance().getLowercaseProductName();
@@ -245,8 +254,7 @@ public class PluginContext {
             LogManager.INSTANCE.logInfo("Communication problems running in offline mode.");
             return solutionId;
         }
-        int numberOfRetries = 0;
-        while (response.conflict() || (response.error() && numberOfRetries < ApiClient.MAX_RETRIES)) {
+        while (response.conflict() || response.error()) {
             solutionId = UUID.randomUUID();
             response = client.getSolutionContext(solutionId);
         }
@@ -318,7 +326,7 @@ public class PluginContext {
 
     private void showIcompatibleVersionDialog() {
         String title = "This version is not updated";
-        String text = "Click below to be on the bleeding edge and enjoy an improved version of CodealikeApplicationComponent.";
+        String text = "Click below to be on the bleeding edge and enjoy an improved version of Codealike.";
 		/*ErrorDialogView dialog = new ErrorDialogView(PlatformUI.getWorkbench().getActiveWorkbenchWindow().getShell(), title, text, "Download the latest.", "images/bigCodealike.jpg",
 			new Runnable() {
 				
@@ -352,10 +360,6 @@ public class PluginContext {
 
     public DateTimeFormatter getDateTimeFormatter() {
         return this.dateTimeFormatter;
-    }
-
-    public DateTimeFormatter getDateTimeParser() {
-        return this.dateTimeParser;
     }
 
     public IdentityService getIdentityService() {

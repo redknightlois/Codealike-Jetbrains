@@ -4,8 +4,9 @@
 package com.codealike.client.core.internal.model;
 
 import com.codealike.client.core.internal.dto.ActivityType;
-import org.joda.time.DateTime;
-import org.joda.time.Period;
+
+import java.time.Duration;
+import java.time.OffsetDateTime;
 
 /**
  * Endable model interface.
@@ -14,11 +15,11 @@ import org.joda.time.Period;
  * @version 1.6.0.0
  */
 public interface IEndable {
-    DateTime getCreationTime();
+    OffsetDateTime getCreationTime();
 
-    Period getDuration();
+    Duration getDuration();
 
-    void setDuration(Period duration);
+    void setDuration(Duration duration);
 
     ActivityType getType();
 }
