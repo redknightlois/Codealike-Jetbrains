@@ -5,7 +5,7 @@ plugins {
 
 group = "com.codealike.client.intellij"
 
-version = "1.8.0.0"
+version = "1.8.0.1"
 
 repositories {
     mavenCentral()
@@ -21,7 +21,7 @@ intellijPlatform {
     pluginConfiguration{
         ideaVersion {
             sinceBuild = "233"
-            untilBuild = ""
+            untilBuild = "241.*"
         }
     }
 
